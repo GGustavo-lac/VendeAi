@@ -78,8 +78,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigateToRegister }) => {
                             className="w-full p-3 bg-brand-dark-secondary rounded-lg placeholder-gray-500 focus:ring-2 focus:ring-brand-green outline-none transition-all" 
                         />
                     </div>
-                    <button type="submit" className="w-full bg-brand-green hover:bg-brand-lime text-brand-dark font-bold py-3 px-4 rounded-lg transition-transform transform hover:scale-105">
-                        {t('login.signIn')}
+                    <button type="submit" disabled={loading} className="w-full bg-brand-green hover:bg-brand-lime text-brand-dark font-bold py-3 px-4 rounded-lg transition-transform transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed">
+                        {loading ? t('common.loading') : t('login.signIn')}
                     </button>
                 </form>
 
