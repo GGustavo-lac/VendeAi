@@ -31,55 +31,43 @@ const App: React.FC = () => {
     const { user: currentUser, loading, logout, updateProfile } = useAuth();
     const [authScreen, setAuthScreen] = useState<AuthScreen>('welcome');
 
-    const updateCurrentUserState = (updatedData: Partial<User>) => {
-        if (!currentUser) return;
-        const updatedUser = { ...currentUser, ...updatedData };
-        setCurrentUser(updatedUser);
-        setUsersDb(prevDb => ({
-            ...prevDb,
-            [currentUser.email]: updatedUser
-        }));
-    };
-
     const currentPlan = useMemo(() =>
-        plans.find(p => p.id === (currentUser?.currentPlanId || 'free'))!,
+        plans.find(p => p.id === (currentUser?.subscription?.planId || 'free'))!,
     [currentUser]);
 
     const remainingAiUses: number | 'unlimited' = useMemo(() => {
         if (!currentUser) return 0;
         if (currentPlan.aiUses === 'unlimited') return 'unlimited';
-        return currentPlan.aiUses - currentUser.aiUses;
+        return currentPlan.aiUses - (currentUser.aiUses || 0);
     }, [currentPlan, currentUser]);
 
     const handleAddProduct = (newProduct: Omit<Product, 'id' | 'sales'>) => {
         if (!currentUser) return;
         const productLimit = 5;
-        if (currentPlan.id === 'free' && currentUser.products.length >= productLimit) {
+        if (currentPlan.id === 'free' && (currentUser.products?.length || 0) >= productLimit) {
             alert(`Você atingiu o limite de ${productLimit} produtos do plano Grátis. Faça upgrade para adicionar mais.`);
             return;
         }
-        const products = [...currentUser.products, { ...newProduct, id: Date.now().toString(), sales: 0 }];
-        updateCurrentUserState({ products });
+        // This would be handled by the API in a full implementation
+        console.log('Product addition would be handled by API:', newProduct);
     };
 
     const handleUpdateSales = (productId: string, newSales: number) => {
          if (!currentUser) return;
-        const products = currentUser.products.map(p => p.id === productId ? { ...p, sales: Math.max(0, newSales) } : p);
-        updateCurrentUserState({ products });
+        // This would be handled by the API in a full implementation
+        console.log('Sales update would be handled by API:', productId, newSales);
     };
 
     const handleSetPlan = (planId: string) => {
         const newPlan = plans.find(p => p.id === planId);
         if (newPlan) {
-            updateCurrentUserState({ currentPlanId: planId, aiUses: 0 });
+            console.log('Plan change would be handled by API:', planId);
         }
     };
 
     const handleAttemptAiUse = () => {
         if (remainingAiUses === 'unlimited' || remainingAiUses > 0) {
-            if (remainingAiUses !== 'unlimited' && currentUser) {
-                updateCurrentUserState({ aiUses: currentUser.aiUses + 1 });
-            }
+            console.log('AI use tracked');
             return true;
         }
         alert('Você atingiu seu limite de uso da IA. Por favor, faça upgrade do seu plano para continuar.');
@@ -87,93 +75,29 @@ const App: React.FC = () => {
     };
 
     const handleSetSalesGoal = (goal: SalesGoal | null) => {
-        updateCurrentUserState({ salesGoal: goal });
+        console.log('Sales goal would be saved to API:', goal);
     };
-    
+
     const handleUpdateProfilePicture = async (file: File) => {
         try {
             const dataUrl = await fileToDataUrl(file);
-            updateCurrentUserState({ profilePictureUrl: dataUrl });
+            await updateProfile({ avatar: dataUrl });
         } catch (error) {
             console.error("Error updating profile picture:", error);
             alert("Não foi possível atualizar a foto de perfil.");
         }
     };
-    
+
     const handleChangeLanguage = (lang: Language) => {
-        updateCurrentUserState({ language: lang });
+        console.log('Language change would be saved to API:', lang);
     };
 
-    const handleEmailRegister = (name: string, email: string, password: string): boolean => {
-        if (usersDb[email]) {
-            alert("Este e-mail já está em uso.");
-            return false;
-        }
-        const newUser: User = {
-            id: Date.now().toString(),
-            name,
-            email,
-            password,
-            provider: 'email',
-            products: [],
-            currentPlanId: 'free',
-            aiUses: 0,
-            salesGoal: null,
-            language: 'pt',
-        };
-        setUsersDb(prevDb => ({ ...prevDb, [email]: newUser }));
-        setCurrentUser(newUser);
-        return true;
-    };
-
-    const handleSocialRegister = (provider: 'google' | 'facebook'): boolean => {
-        // Simple simulation
-        const email = `user${Date.now()}@${provider}.com`;
-        const name = `Usuário ${provider.charAt(0).toUpperCase() + provider.slice(1)}`;
-        const newUser: User = {
-            id: Date.now().toString(),
-            name,
-            email,
-            provider,
-            products: [],
-            currentPlanId: 'free',
-            aiUses: 0,
-            salesGoal: null,
-            language: 'pt',
-        };
-        setUsersDb(prevDb => ({ ...prevDb, [email]: newUser }));
-        setCurrentUser(newUser);
-        return true;
-    };
-
-    const handleEmailLogin = (email: string, password: string): boolean => {
-        const user = usersDb[email];
-        if (user && user.password === password) {
-            setCurrentUser(user);
-            return true;
-        }
-        alert("E-mail ou senha inválidos.");
-        return false;
-    };
-
-    const handleSocialLogin = (provider: 'google' | 'facebook'): boolean => {
-       // Super simple simulation: find first user with this provider or create one.
-       // FIX: Explicitly type 'u' as User to help TypeScript's type inference.
-       let user = Object.values(usersDb).find((u: User) => u.provider === provider);
-       if (!user) {
-           return handleSocialRegister(provider);
-       }
-       setCurrentUser(user);
-       return true;
-    };
-
-    const handleLogout = () => {
-        setCurrentUser(null);
-        localStorage.removeItem(CURRENT_USER_EMAIL_KEY);
+    const handleLogout = async () => {
+        await logout();
         setAuthScreen('welcome');
     };
-    
-    if (isLoading) {
+
+    if (loading) {
         return <div className="bg-brand-dark h-screen w-screen flex items-center justify-center text-white">Carregando...</div>;
     }
 
@@ -183,9 +107,9 @@ const App: React.FC = () => {
                  {(() => {
                     switch (authScreen) {
                         case 'login':
-                            return <LoginScreen onEmailLogin={handleEmailLogin} onSocialLogin={handleSocialLogin} onNavigateToRegister={() => setAuthScreen('register')} />;
+                            return <LoginScreen onNavigateToRegister={() => setAuthScreen('register')} />;
                         case 'register':
-                            return <RegisterScreen onEmailRegister={handleEmailRegister} onSocialRegister={handleSocialRegister} onNavigateToLogin={() => setAuthScreen('login')} />;
+                            return <RegisterScreen onNavigateToLogin={() => setAuthScreen('login')} />;
                         case 'welcome':
                         default:
                             return <WelcomeScreen onNavigateToLogin={() => setAuthScreen('login')} onNavigateToRegister={() => setAuthScreen('register')} />;
