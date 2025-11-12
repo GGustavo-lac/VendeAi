@@ -1,0 +1,7 @@
+{
+  "name": "VendeAí",
+  "description": "An intelligent platform to help entrepreneurs, resellers, and self-employed individuals sell any product with more ease and profit, powered by AI.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
