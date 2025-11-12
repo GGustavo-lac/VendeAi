@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String
+  avatar        String?
+  provider      String   @default("email") // email, google, facebook
+  providerId    String?  // ID from OAuth provider
+  password      String?  // null for OAuth users
+  emailVerified Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  subscription  Subscription?
+  products      Product[]
+  sessions      Session[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model Subscription {
+  id           String           @id @default(cuid())
+  userId       String           @unique
+  planId       String           // free, pro, premium
+  status       SubscriptionStatus @default(ACTIVE)
+  stripeId     String?          // Stripe subscription ID
+  mercadoPagoId String?         // Mercado Pago subscription ID
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  canceledAt   DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  price       Float
+  stock       Int      @default(0)
+  sales       Int      @default(0)
+  imageUrl    String?
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("products")
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+  UNPAID
+}
