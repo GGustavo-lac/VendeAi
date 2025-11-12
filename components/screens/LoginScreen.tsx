@@ -4,29 +4,31 @@ import Logo from '../common/Logo';
 import { GoogleIcon, FacebookIcon } from '../icons/SocialIcons';
 import SocialLoginButton from '../common/SocialLoginButton';
 import { useI18n } from '../../hooks/useI18n';
+import { useAuth } from '../../hooks/useAuth';
+import { authAPI } from '../../services/apiService';
 
 interface LoginScreenProps {
-    onEmailLogin: (email: string, password: string) => boolean;
-    onSocialLogin: (provider: 'google' | 'facebook') => boolean;
     onNavigateToRegister: () => void;
 }
 
-const LoginScreen: React.FC<LoginScreenProps> = ({ onEmailLogin, onSocialLogin, onNavigateToRegister }) => {
+const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigateToRegister }) => {
     const { t } = useI18n();
+    const { login, loading } = useAuth();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
-    const handleEmailLogin = (e: React.FormEvent) => {
+    const handleEmailLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         if (email.trim() && password.trim()) {
-            onEmailLogin(email, password);
+            await login(email, password);
         } else {
             alert(t('login.fillFieldsError'));
         }
     };
 
     const handleSocialLogin = (provider: 'google' | 'facebook') => {
-        onSocialLogin(provider);
+        const url = provider === 'google' ? authAPI.getGoogleOAuthUrl() : authAPI.getFacebookOAuthUrl();
+        window.location.href = url;
     };
 
     return (
