@@ -1,67 +1,16 @@
-
 import React, { useState, useEffect } from 'react';
+import { loadStripe, Stripe } from '@stripe/stripe-js';
+import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { Plan } from '../../types';
 import QrCodeIcon from '../icons/QrCodeIcon';
 import { useI18n } from '../../hooks/useI18n';
+import { paymentAPI } from '../../services/apiService';
 
-// --- Stripe.js Mocks & Componente CheckoutForm ---
-// Esta seção simula a biblioteca Stripe.js e seus componentes React.
-// Em uma aplicação real, você usaria 'npm install @stripe/stripe-js @stripe/react-stripe-js'
-// e importaria esses componentes. A estrutura do código abaixo espelha a implementação real.
-
-// TODO: Substitua pela sua chave publicável real do Stripe.
-// É seguro colocar esta chave no frontend. NUNCA coloque sua chave secreta aqui.
-const STRIPE_PUBLISHABLE_KEY = 'pk_test_TYooMQauvdEDq54NiTphI7jx'; // Chave de teste de exemplo
+// Initialize Stripe with your publishable key
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_...');
 
 const LoadingSpinner: React.FC<{ className?: string }> = ({ className = 'border-brand-dark' }) => (
     <div className={`animate-spin rounded-full h-6 w-6 border-b-2 ${className}`}></div>
-);
-
-// Mock do hook useStripe - simula a confirmação do pagamento.
-const useStripe = () => ({
-    confirmCardPayment: async (clientSecret: string, { payment_method }: any) => {
-        console.log("Simulando Stripe.confirmCardPayment com o clientSecret:", clientSecret);
-        console.log("Usando o método de pagamento mockado:", payment_method.card.id);
-        
-        // Simula uma chamada de rede para a Stripe
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        // Simula uma resposta de sucesso da Stripe
-        if (payment_method && payment_method.card) {
-            return {
-                paymentIntent: {
-                    id: `pi_${Date.now()}`,
-                    status: 'succeeded',
-                },
-            };
-        }
-        
-        // Simula uma resposta de erro da Stripe
-        return {
-            error: {
-                message: 'Seu cartão foi recusado. Verifique os detalhes ou tente um cartão diferente.',
-            },
-        };
-    }
-});
-
-// Mock do hook useElements - simula o acesso ao componente de formulário do cartão.
-const useElements = () => ({
-    getElement: (type: any) => ({
-        // Este objeto mock representa o CardElement que seria montado pelo Stripe.js
-        id: 'mock-card-element'
-    })
-});
-
-// Mock do componente CardElement - este é o campo de formulário seguro do Stripe.
-const CardElement: React.FC = () => (
-    <div className="w-full p-3 bg-slate-800 rounded-md border border-slate-600 focus-within:border-brand-green focus-within:ring-1 focus-within:ring-brand-green">
-        <div className="flex justify-between items-center text-gray-400">
-            <span>•••• •••• •••• 4242</span>
-            <span>12/25</span>
-            <span>•••</span>
-        </div>
-    </div>
 );
 
 interface CheckoutFormProps {
@@ -80,78 +29,75 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ plan, onSuccess, onProcessi
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
         if (!stripe || !elements) {
-            // Stripe.js ainda não carregou. Desativa o envio do formulário.
             return;
         }
         onProcessing(true);
         setError(null);
 
-        // --- ETAPA DE BACKEND (REAL) ---
-        // Esta chamada 'fetch' vai para o seu servidor.
-        // Seu servidor, usando a CHAVE SECRETA do Stripe, cria um PaymentIntent
-        // e retorna o 'clientSecret' para o frontend.
-        // IMPORTANTE: Substitua 'http://localhost:4242' pela URL do seu servidor real quando estiver online.
-        const response = await fetch('http://localhost:4242/create-payment-intent', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ planId: plan.id }),
-        }).then(res => res.json()).catch(err => {
-            console.error("Erro de conexão com o backend:", err);
-            return { error: 'Não foi possível conectar ao servidor de pagamento. Tente novamente mais tarde.' };
-        });
-        
-        if (response.error || !response.clientSecret) {
-            setError(response.error || 'Falha ao inicializar o pagamento.');
-            onProcessing(false);
-            return;
-        }
-        // --- FIM DA ETAPA DE BACKEND ---
+        try {
+            // Create payment intent on backend
+            const response = await paymentAPI.createStripeIntent(plan.id);
+            const { clientSecret, paymentIntentId } = response.data;
 
-        // Confirma o pagamento no frontend usando o clientSecret do backend.
-        const cardElement = elements.getElement(CardElement);
-        // @ts-ignore
-        const result = await stripe.confirmCardPayment(response.clientSecret, {
-            payment_method: {
-                card: cardElement,
-                billing_details: {
-                    name: 'Cliente VendeAí', // Em um app real, você coletaria o nome do cliente.
+            // Confirm payment on frontend
+            const cardElement = elements.getElement(CardElement);
+            if (!cardElement) {
+                throw new Error('Card element not found');
+            }
+
+            const { error: paymentError } = await stripe.confirmCardPayment(clientSecret, {
+                payment_method: {
+                    card: cardElement,
+                    billing_details: {
+                        name: 'Cliente VendeAí',
+                    },
                 },
-            },
-        });
-        
-        // @ts-ignore
-        if (result.error) {
-            // @ts-ignore
-            setError(result.error.message);
-            onProcessing(false);
-        } else {
-            // @ts-ignore
-            if (result.paymentIntent.status === 'succeeded') {
-                console.log("Pagamento bem-sucedido!");
+            });
+
+            if (paymentError) {
+                setError(paymentError.message || 'Payment failed');
+            } else {
+                // Confirm subscription on backend
+                await paymentAPI.confirmStripePayment(paymentIntentId);
                 onSuccess();
             }
+        } catch (err: any) {
+            setError(err.response?.data?.error || err.message || 'Payment failed');
+        } finally {
+            onProcessing(false);
         }
     };
-    
+
     return (
         <form onSubmit={handleSubmit}>
             <h3 className="font-semibold text-lg text-center mb-4">{t('payment.payWithCard')}</h3>
             <div className="space-y-4">
                 <label className="text-sm font-medium text-gray-300 block mb-1">{t('payment.cardDetails')}</label>
-                <CardElement />
-                
+                <div className="w-full p-3 bg-slate-800 rounded-md border border-slate-600 focus-within:border-brand-green focus-within:ring-1 focus-within:ring-brand-green">
+                    <CardElement options={{
+                        style: {
+                            base: {
+                                color: '#fff',
+                                fontSize: '16px',
+                                '::placeholder': {
+                                    color: '#9ca3af',
+                                },
+                            },
+                            invalid: {
+                                color: '#ef4444',
+                            },
+                        },
+                    }} />
+                </div>
+
                 <button type="submit" disabled={isProcessing} className="w-full h-12 !mt-6 bg-brand-green hover:bg-brand-lime text-brand-dark font-bold py-3 px-4 rounded-lg flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed">
                     {isProcessing ? <LoadingSpinner /> : t('payment.payAmount', { itemPrice: plan.price })}
                 </button>
-                 {error && <p className="text-red-400 text-xs mt-2 text-center">{error}</p>}
+                {error && <p className="text-red-400 text-xs mt-2 text-center">{error}</p>}
             </div>
         </form>
     );
 };
-
-// --- Componente Principal PaymentModal ---
 
 interface PaymentModalProps {
     isOpen: boolean;
@@ -165,12 +111,14 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, plan, onPa
     const [paymentMethod, setPaymentMethod] = useState<'pix' | 'card' | null>(null);
     const [paymentSuccess, setPaymentSuccess] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
-    
+    const [pixData, setPixData] = useState<any>(null);
+
     useEffect(() => {
         if (isOpen) {
             setPaymentMethod(null);
             setPaymentSuccess(false);
             setIsProcessing(false);
+            setPixData(null);
         }
     }, [isOpen]);
 
@@ -181,23 +129,32 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, plan, onPa
         const locales = { 'pt': 'pt-BR', 'en': 'en-US', 'es': 'es-ES' };
         const currencies = { 'pt': 'BRL', 'en': 'USD', 'es': 'EUR' };
         return numericValue.toLocaleString(locales[language], { style: 'currency', currency: currencies[language] });
-    }
+    };
+
+    const handleCreatePixPayment = async () => {
+        setIsProcessing(true);
+        try {
+            const response = await paymentAPI.createMercadoPagoPix(plan.id);
+            setPixData(response.data);
+        } catch (err: any) {
+            console.error('PIX creation error:', err);
+            alert('Failed to create PIX payment');
+        } finally {
+            setIsProcessing(false);
+        }
+    };
 
     const handleConfirmPixPayment = () => {
-        setIsProcessing(true);
-        setTimeout(() => {
-            setIsProcessing(false);
-            setPaymentSuccess(true);
-        }, 2500);
+        setPaymentSuccess(true);
     };
-    
+
     const handleSuccessAndClose = () => {
         onPaymentSuccess();
         onClose();
-    }
-    
+    };
+
     const renderContent = () => {
-        if(paymentSuccess) {
+        if (paymentSuccess) {
             return (
                 <div className="text-center p-6">
                     <div className="w-16 h-16 bg-brand-green rounded-full mx-auto flex items-center justify-center mb-4">
@@ -211,13 +168,33 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, plan, onPa
                 </div>
             )
         }
-        
+
         if (paymentMethod === 'pix') {
+            if (!pixData) {
+                // Show PIX creation/loading state
+                return (
+                    <div>
+                        <h3 className="font-semibold text-lg text-center mb-2">{t('payment.payWithPix')}</h3>
+                        <p className="text-xs text-gray-400 text-center mb-4">{t('payment.pixInstructions')}</p>
+                        <button onClick={handleCreatePixPayment} disabled={isProcessing} className="w-full h-12 bg-brand-green hover:bg-brand-lime text-brand-dark font-bold py-3 px-4 rounded-lg flex items-center justify-center disabled:opacity-70">
+                            {isProcessing ? <LoadingSpinner /> : t('payment.generatePix')}
+                        </button>
+                        <button onClick={() => setPaymentMethod(null)} className="w-full mt-2 text-gray-400 text-sm hover:text-white">{t('common.back')}</button>
+                    </div>
+                );
+            }
+
             return (
                 <div>
                     <h3 className="font-semibold text-lg text-center mb-2">{t('payment.payWithPix')}</h3>
                     <p className="text-xs text-gray-400 text-center mb-4">{t('payment.pixInstructions')}</p>
-                    <QrCodeIcon className="w-40 h-40 mx-auto bg-slate-800 p-2 rounded-lg" />
+                    {pixData.qrCodeBase64 ? (
+                        <div className="w-40 h-40 mx-auto bg-slate-800 p-2 rounded-lg">
+                            <img src={`data:image/png;base64,${pixData.qrCodeBase64}`} alt="PIX QR Code" className="w-full h-full" />
+                        </div>
+                    ) : (
+                        <QrCodeIcon className="w-40 h-40 mx-auto bg-slate-800 p-2 rounded-lg" />
+                    )}
                     <button onClick={handleConfirmPixPayment} disabled={isProcessing} className="w-full h-12 mt-6 bg-brand-green hover:bg-brand-lime text-brand-dark font-bold py-3 px-4 rounded-lg flex items-center justify-center disabled:opacity-70">
                         {isProcessing ? <LoadingSpinner /> : t('payment.confirmPixPayment')}
                     </button>
@@ -228,19 +205,20 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, plan, onPa
 
         if (paymentMethod === 'card') {
             return (
-                 <div>
-                    <CheckoutForm 
-                        plan={plan}
-                        onSuccess={() => {
-                            // FIX: The function to update the processing state is `setIsProcessing`, not `onProcessing`.
-                            setIsProcessing(false);
-                            setPaymentSuccess(true);
-                        }}
-                        onProcessing={setIsProcessing}
-                        isProcessing={isProcessing}
-                    />
-                    <button onClick={() => { if(!isProcessing) setPaymentMethod(null); }} className="w-full mt-2 text-gray-400 text-sm hover:text-white">{t('common.back')}</button>
-                </div>
+                <Elements stripe={stripePromise}>
+                    <div>
+                        <CheckoutForm
+                            plan={plan}
+                            onSuccess={() => {
+                                setIsProcessing(false);
+                                setPaymentSuccess(true);
+                            }}
+                            onProcessing={setIsProcessing}
+                            isProcessing={isProcessing}
+                        />
+                        <button onClick={() => { if (!isProcessing) setPaymentMethod(null); }} className="w-full mt-2 text-gray-400 text-sm hover:text-white">{t('common.back')}</button>
+                    </div>
+                </Elements>
             )
         }
 
@@ -260,7 +238,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, plan, onPa
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4" onClick={onClose}>
             <div className="bg-brand-dark-secondary rounded-2xl w-full max-w-sm p-6 text-white animate-fade-in" onClick={e => e.stopPropagation()}>
                 <button onClick={onClose} className="absolute top-3 right-3 text-gray-400 hover:text-white disabled:opacity-50" disabled={isProcessing}>
-                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
                 {renderContent()}
             </div>

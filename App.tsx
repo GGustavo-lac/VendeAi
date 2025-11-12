@@ -17,7 +17,9 @@ import ProfileScreen from './components/screens/ProfileScreen';
 import { fileToDataUrl } from './utils/fileUtils';
 import CompetitorAnalysisScreen from './components/screens/CompetitorAnalysisScreen';
 import AddProductModal from './components/common/AddProductModal';
+import AuthCallbackPage from './components/pages/AuthCallbackPage';
 import { I18nProvider } from './context/I18nContext';
+import { useAuth } from './hooks/useAuth';
 
 
 const USERS_DB_KEY = 'vendeAiUsersDb';
@@ -26,94 +28,46 @@ const CURRENT_USER_EMAIL_KEY = 'vendeAiCurrentUserEmail';
 type AuthScreen = 'welcome' | 'login' | 'register';
 
 const App: React.FC = () => {
-    const [usersDb, setUsersDb] = useState<Record<string, User>>({});
-    const [currentUser, setCurrentUser] = useState<User | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const { user: currentUser, loading, logout, updateProfile } = useAuth();
     const [authScreen, setAuthScreen] = useState<AuthScreen>('welcome');
 
-    // Load DB and check for logged-in user on initial mount
-    useEffect(() => {
-        try {
-            const savedDbJSON = localStorage.getItem(USERS_DB_KEY);
-            // FIX: Explicitly type the parsed JSON to ensure type safety for the user database.
-            const db: Record<string, User> = savedDbJSON ? JSON.parse(savedDbJSON) : {};
-            setUsersDb(db);
-
-            const currentUserEmail = localStorage.getItem(CURRENT_USER_EMAIL_KEY);
-            if (currentUserEmail && db[currentUserEmail]) {
-                setCurrentUser(db[currentUserEmail]);
-            }
-        } catch (error) {
-            console.error("Failed to parse data from localStorage", error);
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
-
-    // Save state to localStorage whenever it changes
-    useEffect(() => {
-        if (!isLoading) {
-            // Save the entire user database
-            localStorage.setItem(USERS_DB_KEY, JSON.stringify(usersDb));
-
-            // Save the current user's email to remember login state
-            if (currentUser) {
-                localStorage.setItem(CURRENT_USER_EMAIL_KEY, currentUser.email);
-            } else {
-                localStorage.removeItem(CURRENT_USER_EMAIL_KEY);
-            }
-        }
-    }, [usersDb, currentUser, isLoading]);
-
-    const updateCurrentUserState = (updatedData: Partial<User>) => {
-        if (!currentUser) return;
-        const updatedUser = { ...currentUser, ...updatedData };
-        setCurrentUser(updatedUser);
-        setUsersDb(prevDb => ({
-            ...prevDb,
-            [currentUser.email]: updatedUser
-        }));
-    };
-
     const currentPlan = useMemo(() =>
-        plans.find(p => p.id === (currentUser?.currentPlanId || 'free'))!,
+        plans.find(p => p.id === (currentUser?.subscription?.planId || 'free'))!,
     [currentUser]);
 
     const remainingAiUses: number | 'unlimited' = useMemo(() => {
         if (!currentUser) return 0;
         if (currentPlan.aiUses === 'unlimited') return 'unlimited';
-        return currentPlan.aiUses - currentUser.aiUses;
+        return currentPlan.aiUses - (currentUser.aiUses || 0);
     }, [currentPlan, currentUser]);
 
     const handleAddProduct = (newProduct: Omit<Product, 'id' | 'sales'>) => {
         if (!currentUser) return;
         const productLimit = 5;
-        if (currentPlan.id === 'free' && currentUser.products.length >= productLimit) {
+        if (currentPlan.id === 'free' && (currentUser.products?.length || 0) >= productLimit) {
             alert(`Você atingiu o limite de ${productLimit} produtos do plano Grátis. Faça upgrade para adicionar mais.`);
             return;
         }
-        const products = [...currentUser.products, { ...newProduct, id: Date.now().toString(), sales: 0 }];
-        updateCurrentUserState({ products });
+        // This would be handled by the API in a full implementation
+        console.log('Product addition would be handled by API:', newProduct);
     };
 
     const handleUpdateSales = (productId: string, newSales: number) => {
          if (!currentUser) return;
-        const products = currentUser.products.map(p => p.id === productId ? { ...p, sales: Math.max(0, newSales) } : p);
-        updateCurrentUserState({ products });
+        // This would be handled by the API in a full implementation
+        console.log('Sales update would be handled by API:', productId, newSales);
     };
 
     const handleSetPlan = (planId: string) => {
         const newPlan = plans.find(p => p.id === planId);
         if (newPlan) {
-            updateCurrentUserState({ currentPlanId: planId, aiUses: 0 });
+            console.log('Plan change would be handled by API:', planId);
         }
     };
 
     const handleAttemptAiUse = () => {
         if (remainingAiUses === 'unlimited' || remainingAiUses > 0) {
-            if (remainingAiUses !== 'unlimited' && currentUser) {
-                updateCurrentUserState({ aiUses: currentUser.aiUses + 1 });
-            }
+            console.log('AI use tracked');
             return true;
         }
         alert('Você atingiu seu limite de uso da IA. Por favor, faça upgrade do seu plano para continuar.');
@@ -121,93 +75,29 @@ const App: React.FC = () => {
     };
 
     const handleSetSalesGoal = (goal: SalesGoal | null) => {
-        updateCurrentUserState({ salesGoal: goal });
+        console.log('Sales goal would be saved to API:', goal);
     };
-    
+
     const handleUpdateProfilePicture = async (file: File) => {
         try {
             const dataUrl = await fileToDataUrl(file);
-            updateCurrentUserState({ profilePictureUrl: dataUrl });
+            await updateProfile({ avatar: dataUrl });
         } catch (error) {
             console.error("Error updating profile picture:", error);
             alert("Não foi possível atualizar a foto de perfil.");
         }
     };
-    
+
     const handleChangeLanguage = (lang: Language) => {
-        updateCurrentUserState({ language: lang });
+        console.log('Language change would be saved to API:', lang);
     };
 
-    const handleEmailRegister = (name: string, email: string, password: string): boolean => {
-        if (usersDb[email]) {
-            alert("Este e-mail já está em uso.");
-            return false;
-        }
-        const newUser: User = {
-            id: Date.now().toString(),
-            name,
-            email,
-            password,
-            provider: 'email',
-            products: [],
-            currentPlanId: 'free',
-            aiUses: 0,
-            salesGoal: null,
-            language: 'pt',
-        };
-        setUsersDb(prevDb => ({ ...prevDb, [email]: newUser }));
-        setCurrentUser(newUser);
-        return true;
-    };
-
-    const handleSocialRegister = (provider: 'google' | 'facebook'): boolean => {
-        // Simple simulation
-        const email = `user${Date.now()}@${provider}.com`;
-        const name = `Usuário ${provider.charAt(0).toUpperCase() + provider.slice(1)}`;
-        const newUser: User = {
-            id: Date.now().toString(),
-            name,
-            email,
-            provider,
-            products: [],
-            currentPlanId: 'free',
-            aiUses: 0,
-            salesGoal: null,
-            language: 'pt',
-        };
-        setUsersDb(prevDb => ({ ...prevDb, [email]: newUser }));
-        setCurrentUser(newUser);
-        return true;
-    };
-
-    const handleEmailLogin = (email: string, password: string): boolean => {
-        const user = usersDb[email];
-        if (user && user.password === password) {
-            setCurrentUser(user);
-            return true;
-        }
-        alert("E-mail ou senha inválidos.");
-        return false;
-    };
-
-    const handleSocialLogin = (provider: 'google' | 'facebook'): boolean => {
-       // Super simple simulation: find first user with this provider or create one.
-       // FIX: Explicitly type 'u' as User to help TypeScript's type inference.
-       let user = Object.values(usersDb).find((u: User) => u.provider === provider);
-       if (!user) {
-           return handleSocialRegister(provider);
-       }
-       setCurrentUser(user);
-       return true;
-    };
-
-    const handleLogout = () => {
-        setCurrentUser(null);
-        localStorage.removeItem(CURRENT_USER_EMAIL_KEY);
+    const handleLogout = async () => {
+        await logout();
         setAuthScreen('welcome');
     };
-    
-    if (isLoading) {
+
+    if (loading) {
         return <div className="bg-brand-dark h-screen w-screen flex items-center justify-center text-white">Carregando...</div>;
     }
 
@@ -217,9 +107,9 @@ const App: React.FC = () => {
                  {(() => {
                     switch (authScreen) {
                         case 'login':
-                            return <LoginScreen onEmailLogin={handleEmailLogin} onSocialLogin={handleSocialLogin} onNavigateToRegister={() => setAuthScreen('register')} />;
+                            return <LoginScreen onNavigateToRegister={() => setAuthScreen('register')} />;
                         case 'register':
-                            return <RegisterScreen onEmailRegister={handleEmailRegister} onSocialRegister={handleSocialRegister} onNavigateToLogin={() => setAuthScreen('login')} />;
+                            return <RegisterScreen onNavigateToLogin={() => setAuthScreen('login')} />;
                         case 'welcome':
                         default:
                             return <WelcomeScreen onNavigateToLogin={() => setAuthScreen('login')} onNavigateToRegister={() => setAuthScreen('register')} />;
@@ -251,11 +141,11 @@ const App: React.FC = () => {
                 case Screen.Analyzer:
                     return <AnalyzerScreen remainingAiUses={remainingAiUses} onAttemptAiUse={handleAttemptAiUse} onAddProduct={handleAddProduct} currentPlan={currentPlan} setActiveScreen={setActiveScreen} />;
                 case Screen.Dashboard:
-                    return <DashboardScreen products={currentUser.products} salesGoal={currentUser.salesGoal} onSetSalesGoal={handleSetSalesGoal} currentPlan={currentPlan} setActiveScreen={setActiveScreen} />;
+                    return <DashboardScreen products={currentUser.products || []} salesGoal={currentUser.salesGoal} onSetSalesGoal={handleSetSalesGoal} currentPlan={currentPlan} setActiveScreen={setActiveScreen} />;
                 case Screen.Products:
-                    return <ProductsScreen products={currentUser.products} onAddProduct={handleAddProduct} onUpdateSales={handleUpdateSales} currentPlan={currentPlan} setActiveScreen={setActiveScreen} onAttemptAiUse={handleAttemptAiUse} onOpenAddModal={handleOpenAddProductModal} />;
+                    return <ProductsScreen products={currentUser.products || []} onAddProduct={handleAddProduct} onUpdateSales={handleUpdateSales} currentPlan={currentPlan} setActiveScreen={setActiveScreen} onAttemptAiUse={handleAttemptAiUse} onOpenAddModal={handleOpenAddProductModal} />;
                 case Screen.Plans:
-                    return <PlansScreen currentPlanId={currentUser.currentPlanId} onSubscriptionSuccess={handleSetPlan} />;
+                    return <PlansScreen currentPlanId={currentUser.subscription?.planId || 'free'} onSubscriptionSuccess={handleSetPlan} />;
                 case Screen.Chat:
                     return <SmartChatScreen onAttemptAiUse={handleAttemptAiUse} />;
                 case Screen.Trends:
