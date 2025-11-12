@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Plan } from '../../types';
 import PaymentModal from '../common/PaymentModal';
@@ -111,7 +112,7 @@ const PlansScreen: React.FC<{
                 </button>
             </div>
 
-            <div className="space-y-5">
+            <div className="space-y-5 md:grid md:grid-cols-3 md:gap-4 md:space-y-0">
                 {localizedPlans.map((plan) => {
                     const originalPlan = plans.find(p => p.id === plan.id)!;
                     const isCurrentPlan = plan.id === currentPlanId;
@@ -119,21 +120,23 @@ const PlansScreen: React.FC<{
                     const displayPriceDetails = billingCycle === 'annual' && plan.annualPriceDetails ? plan.annualPriceDetails : plan.priceDetails;
 
                     return (
-                        <div key={plan.name} className={`bg-brand-dark-secondary p-6 rounded-xl border-2 ${originalPlan.isPopular ? 'border-brand-green' : 'border-slate-700'} relative`}>
+                        <div key={plan.name} className={`bg-brand-dark-secondary p-6 rounded-xl border-2 ${originalPlan.isPopular ? 'border-brand-green' : 'border-slate-700'} relative flex flex-col`}>
                             {originalPlan.isPopular && <span className="absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2 bg-brand-green text-brand-dark text-xs font-bold px-3 py-1 rounded-full uppercase">{t('plans.popular')}</span>}
-                            <h2 className="text-xl font-bold text-white">{plan.name}</h2>
-                            <p className="mt-2">
-                                <span className="text-4xl font-extrabold">{displayPrice}</span>
-                                <span className="text-gray-400 ml-1">{displayPriceDetails}</span>
-                            </p>
-                            <ul className="mt-6 space-y-3">
-                                {originalPlan.features.map(featureKey => (
-                                    <li key={featureKey} className="flex items-center space-x-2">
-                                        <CheckIcon />
-                                        <span className="text-gray-300 text-sm">{t(featureKey)}</span>
-                                    </li>
-                                ))}
-                            </ul>
+                            <div className="flex-grow">
+                                <h2 className="text-xl font-bold text-white">{plan.name}</h2>
+                                <p className="mt-2">
+                                    <span className="text-4xl font-extrabold">{displayPrice}</span>
+                                    <span className="text-gray-400 ml-1">{displayPriceDetails}</span>
+                                </p>
+                                <ul className="mt-6 space-y-3">
+                                    {originalPlan.features.map(featureKey => (
+                                        <li key={featureKey} className="flex items-center space-x-2">
+                                            <CheckIcon />
+                                            <span className="text-gray-300 text-sm">{t(featureKey)}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
                             <button
                                 onClick={() => handleSelectPlan(originalPlan)}
                                 disabled={isCurrentPlan || plan.id === 'free'}

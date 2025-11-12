@@ -82,6 +82,10 @@ export const translations = {
     analyzer: {
       title: 'Analisador de Produto com IA',
       placeholder: 'Descreva seu produto ou cole um link aqui...',
+      useCamera: 'Usar Câmera',
+      cameraTitle: 'Posicione o produto',
+      capture: 'Tirar Foto',
+      cameraError: 'Não foi possível acessar a câmera. Verifique as permissões.',
       changeImage: 'Trocar Imagem',
       attachImage: 'Anexar Imagem',
       productPreviewAlt: 'Pré-visualização do produto',
@@ -155,10 +159,12 @@ export const translations = {
     },
     chat: {
       title: 'Chat Inteligente',
-      initialMessage: 'Olá! 👋 Sou o Zé, seu assistente de vendas. Como posso te ajudar a vender mais hoje?',
-      systemInstruction: 'Você é um assistente de IA amigável e motivador para o VendeAí, um aplicativo que ajuda empreendedores a vender produtos. Seu nome é Zé. Forneça conselhos simples, diretos e úteis sobre marketing, gerenciamento de estoque e atendimento ao cliente. Mantenha suas respostas concisas e encorajadoras. Use emojis para tornar a conversa mais amigável. Responda em Português do Brasil.',
+      initialMessage: 'Olá! 👋 Sou o Zé, seu assistente de vendas. Como posso te ajudar a vender mais hoje? Você pode me enviar fotos dos seus produtos!',
+      systemInstruction: 'Você é um assistente de IA amigável e motivador para o VendeAí, um aplicativo que ajuda empreendedores a vender produtos. Seu nome é Zé. Forneça conselhos simples, diretos e úteis sobre marketing, gerenciamento de estoque e atendimento ao cliente. Se o usuário enviar uma imagem, comente sobre ela de forma construtiva e relacione-a com a pergunta. Mantenha suas respostas concisas e encorajadoras. Use emojis para tornar a conversa mais amigável. Responda em Português do Brasil.',
       placeholder: 'Digite sua dúvida...',
       errorMessage: 'Desculpe, algo deu errado. Tente novamente.',
+      attachImage: 'Anexar imagem',
+      imageAlt: 'Imagem enviada pelo usuário',
     },
     plans: {
       title: 'Nossos Planos',
@@ -383,6 +389,10 @@ export const translations = {
     analyzer: {
       title: 'AI Product Analyzer',
       placeholder: 'Describe your product or paste a link here...',
+      useCamera: 'Use Camera',
+      cameraTitle: 'Position the product',
+      capture: 'Take Picture',
+      cameraError: 'Could not access the camera. Please check permissions.',
       changeImage: 'Change Image',
       attachImage: 'Attach Image',
       productPreviewAlt: 'Product preview',
@@ -456,10 +466,12 @@ export const translations = {
     },
     chat: {
       title: 'Smart Chat',
-      initialMessage: 'Hello! 👋 I\'m Zé, your sales assistant. How can I help you sell more today?',
-      systemInstruction: 'You are a friendly and motivating AI assistant for VendeAí, an app that helps entrepreneurs sell products. Your name is Zé. Provide simple, direct, and helpful advice on marketing, inventory management, and customer service. Keep your answers concise and encouraging. Use emojis to make the conversation friendlier. Respond in the user\'s language.',
+      initialMessage: 'Hello! 👋 I\'m Zé, your sales assistant. How can I help you sell more today? You can send me pictures of your products!',
+      systemInstruction: 'You are a friendly and motivating AI assistant for VendeAí, an app that helps entrepreneurs sell products. Your name is Zé. Provide simple, direct, and helpful advice on marketing, inventory management, and customer service. If the user sends an image, comment on it constructively and relate it to the question. Keep your answers concise and encouraging. Use emojis to make the conversation friendlier. Respond in the user\'s language.',
       placeholder: 'Type your question...',
       errorMessage: 'Sorry, something went wrong. Please try again.',
+      attachImage: 'Attach image',
+      imageAlt: 'Image sent by user',
     },
     plans: {
       title: 'Our Plans',
@@ -684,6 +696,10 @@ export const translations = {
     analyzer: {
       title: 'Analizador de Productos con IA',
       placeholder: 'Describe tu producto o pega un enlace aquí...',
+      useCamera: 'Usar Cámara',
+      cameraTitle: 'Posiciona el producto',
+      capture: 'Tomar Foto',
+      cameraError: 'No se pudo acceder a la cámara. Por favor, comprueba los permisos.',
       changeImage: 'Cambiar Imagen',
       attachImage: 'Adjuntar Imagen',
       productPreviewAlt: 'Vista previa del producto',
@@ -757,10 +773,12 @@ export const translations = {
     },
     chat: {
       title: 'Chat Inteligente',
-      initialMessage: '¡Hola! 👋 Soy Zé, tu asistente de ventas. ¿Cómo puedo ayudarte a vender más hoy?',
-      systemInstruction: 'Eres un asistente de IA amigable y motivador para VendeAí, una aplicación que ayuda a los emprendedores a vender productos. Tu nombre es Zé. Ofrece consejos sencillos, directos y útiles sobre marketing, gestión de inventario y servicio al cliente. Mantén tus respuestas concisas y alentadoras. Usa emojis para que la conversación sea más amigable. Responde en el idioma del usuario.',
+      initialMessage: '¡Hola! 👋 Soy Zé, tu asistente de ventas. ¿Cómo puedo ayudarte a vender más hoy? ¡Puedes enviarme fotos de tus productos!',
+      systemInstruction: 'Eres un asistente de IA amigable y motivador para VendeAí, una aplicación que ayuda a los emprendedores a vender productos. Tu nombre es Zé. Ofrece consejos sencillos, directos y útiles sobre marketing, gestión de inventario y servicio al cliente. Si el usuario envía una imagen, coméntala de forma constructiva y relaciónala con la pregunta. Mantén tus respuestas concisas y alentadoras. Usa emojis para que la conversación sea más amigable. Responde en el idioma del usuario.',
       placeholder: 'Escribe tu pregunta...',
       errorMessage: 'Lo siento, algo salió mal. Por favor, inténtalo de nuevo.',
+      attachImage: 'Adjuntar imagen',
+      imageAlt: 'Imagen enviada por el usuario',
     },
     plans: {
       title: 'Nuestros Planes',

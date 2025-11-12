@@ -179,7 +179,7 @@ const ProductsScreen: React.FC<ProductsScreenProps> = ({ products, onAddProduct,
                     <p className="text-gray-400">{t('products.noProductsFound', { searchTerm })}</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {filteredProducts.map(product => (
                        <ProductCard 
                             key={product.id} 
@@ -211,7 +211,7 @@ const ProductsScreen: React.FC<ProductsScreenProps> = ({ products, onAddProduct,
 
             {isComparisonMode && (
                 <div className="fixed bottom-16 left-0 right-0 w-full bg-brand-dark border-t border-slate-700 p-4 shadow-lg animate-fade-in">
-                     <div className="max-w-md mx-auto flex justify-between items-center">
+                     <div className="max-w-md md:max-w-2xl mx-auto flex justify-between items-center">
                         <p className="text-white font-semibold">
                             {t('products.productsSelected', { count: comparisonList.length })}
                         </p>

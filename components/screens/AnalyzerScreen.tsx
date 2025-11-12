@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+
+import React, { useState, useRef, useEffect } from 'react';
 import { analyzeProduct, generateAds } from '../../services/geminiService';
 import { fileToBase64, fileToDataUrl } from '../../utils/fileUtils';
 import { ProductAnalysis, GeneratedAds, Product, Plan, Screen } from '../../types';
@@ -58,10 +59,64 @@ const AnalyzerScreen: React.FC<AnalyzerScreenProps> = ({ remainingAiUses, onAtte
     const [isLoading, setIsLoading] = useState(false);
     const [adLoading, setAdLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [isCameraOpen, setIsCameraOpen] = useState(false);
+
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const streamRef = useRef<MediaStream | null>(null);
 
     const hasAccess = currentPlan.id !== 'free';
 
+    useEffect(() => {
+        return () => { // Cleanup on unmount
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach(track => track.stop());
+            }
+        };
+    }, []);
+
+    const startCamera = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+            }
+            streamRef.current = stream;
+            setIsCameraOpen(true);
+        } catch (err) {
+            console.error("Error accessing camera:", err);
+            alert(t('analyzer.cameraError'));
+        }
+    };
+    
+    const stopCamera = () => {
+        if (streamRef.current) {
+            streamRef.current.getTracks().forEach(track => track.stop());
+            streamRef.current = null;
+        }
+        setIsCameraOpen(false);
+    };
+
+    const handleCapture = () => {
+        if (videoRef.current && canvasRef.current) {
+            const video = videoRef.current;
+            const canvas = canvasRef.current;
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d')?.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+            
+            canvas.toBlob(blob => {
+                if (blob) {
+                    const file = new File([blob], "camera-capture.jpg", { type: "image/jpeg" });
+                    setImageFile(file);
+                    setImagePreview(URL.createObjectURL(file));
+                    stopCamera();
+                }
+            }, 'image/jpeg');
+        }
+    };
+    
     if (!hasAccess) {
         return (
             <div className="p-6 text-white text-center flex flex-col items-center justify-center h-full animate-fade-in">
@@ -76,6 +131,22 @@ const AnalyzerScreen: React.FC<AnalyzerScreenProps> = ({ remainingAiUses, onAtte
                 >
                     {t('common.seePlans')}
                 </button>
+            </div>
+        );
+    }
+
+    if (isCameraOpen) {
+        return (
+            <div className="p-4 text-white h-full flex flex-col">
+                <h1 className="text-2xl font-bold mb-4 text-center">{t('analyzer.cameraTitle')}</h1>
+                <div className="relative flex-1">
+                    <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover rounded-lg bg-black"></video>
+                    <canvas ref={canvasRef} className="hidden"></canvas>
+                </div>
+                <div className="mt-4 flex flex-col gap-3">
+                    <button onClick={handleCapture} className="w-full bg-brand-green text-brand-dark font-bold py-3 rounded-lg">{t('analyzer.capture')}</button>
+                    <button onClick={stopCamera} className="w-full bg-slate-700 text-white font-bold py-3 rounded-lg">{t('common.cancel')}</button>
+                </div>
             </div>
         );
     }
@@ -181,6 +252,7 @@ const AnalyzerScreen: React.FC<AnalyzerScreenProps> = ({ remainingAiUses, onAtte
                  <input type="file" accept="image/*" ref={fileInputRef} onChange={handleImageChange} className="hidden" />
 
                 <div className="flex items-center space-x-4">
+                    <button onClick={startCamera} className="flex-1 text-center bg-slate-600 hover:bg-slate-500 py-2 px-4 rounded-md text-sm font-medium transition-colors disabled:bg-slate-800 disabled:cursor-not-allowed" disabled={!hasCredits}>{t('analyzer.useCamera')}</button>
                     <button onClick={() => fileInputRef.current?.click()} className="flex-1 text-center bg-slate-600 hover:bg-slate-500 py-2 px-4 rounded-md text-sm font-medium transition-colors disabled:bg-slate-800 disabled:cursor-not-allowed" disabled={!hasCredits}>
                         {imageFile ? t('analyzer.changeImage') : t('analyzer.attachImage')}
                     </button>

@@ -69,6 +69,7 @@ export interface GeneratedAds {
 export interface ChatMessage {
   role: 'user' | 'model';
   text: string;
+  imageUrl?: string;
 }
 
 export interface TrendSuggestion {
@@ -94,7 +95,7 @@ export interface User {
     name: string;
     email: string;
     password?: string; // For simulation only
-    provider?: 'email' | 'google' | 'facebook';
+    provider?: 'email' | 'google';
     profilePictureUrl?: string;
     language: Language;
 

@@ -1,13 +1,13 @@
 
 import React, { useState } from 'react';
 import Logo from '../common/Logo';
-import { GoogleIcon, FacebookIcon } from '../icons/SocialIcons';
+import { GoogleIcon } from '../icons/SocialIcons';
 import SocialLoginButton from '../common/SocialLoginButton';
 import { useI18n } from '../../hooks/useI18n';
 
 interface LoginScreenProps {
     onEmailLogin: (email: string, password: string) => boolean;
-    onSocialLogin: (provider: 'google' | 'facebook') => boolean;
+    onSocialLogin: (provider: 'google') => boolean;
     onNavigateToRegister: () => void;
 }
 
@@ -25,7 +25,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onEmailLogin, onSocialLogin, 
         }
     };
 
-    const handleSocialLogin = (provider: 'google' | 'facebook') => {
+    const handleSocialLogin = (provider: 'google') => {
         onSocialLogin(provider);
     };
 
@@ -42,7 +42,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onEmailLogin, onSocialLogin, 
 
                 <div className="space-y-4">
                     <SocialLoginButton provider="Google" icon={<GoogleIcon />} onClick={() => handleSocialLogin('google')} />
-                    <SocialLoginButton provider="Facebook" icon={<FacebookIcon />} onClick={() => handleSocialLogin('facebook')} />
                 </div>
                 
                 <div className="my-6 flex items-center">

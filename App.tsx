@@ -160,7 +160,7 @@ const App: React.FC = () => {
         return true;
     };
 
-    const handleSocialRegister = (provider: 'google' | 'facebook'): boolean => {
+    const handleSocialRegister = (provider: 'google'): boolean => {
         // Simple simulation
         const email = `user${Date.now()}@${provider}.com`;
         const name = `Usuário ${provider.charAt(0).toUpperCase() + provider.slice(1)}`;
@@ -190,7 +190,7 @@ const App: React.FC = () => {
         return false;
     };
 
-    const handleSocialLogin = (provider: 'google' | 'facebook'): boolean => {
+    const handleSocialLogin = (provider: 'google'): boolean => {
        // Super simple simulation: find first user with this provider or create one.
        // FIX: Explicitly type 'u' as User to help TypeScript's type inference.
        let user = Object.values(usersDb).find((u: User) => u.provider === provider);
@@ -270,7 +270,7 @@ const App: React.FC = () => {
         };
 
         return (
-            <div className="relative mx-auto h-screen w-full max-w-md overflow-hidden bg-brand-dark-secondary shadow-2xl flex flex-col">
+            <div className="relative mx-auto h-screen w-full max-w-md md:max-w-2xl overflow-hidden bg-brand-dark-secondary shadow-2xl flex flex-col">
                 <main className="flex-1 overflow-y-auto pb-20">
                     {renderScreen()}
                 </main>

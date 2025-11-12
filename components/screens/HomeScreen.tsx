@@ -33,7 +33,7 @@ const ActionCard: React.FC<{ title: string, description: string, icon: string | 
 const PlanStatus: React.FC<{ plan: Plan; uses: number | 'unlimited'; onChangePlan: () => void }> = ({ plan, uses, onChangePlan }) => {
     const { t } = useI18n();
     return (
-        <div className="bg-brand-dark-secondary p-4 rounded-lg border border-slate-700">
+        <div className="bg-brand-dark-secondary p-4 rounded-lg border border-slate-700 md:col-span-2">
             <div className="flex justify-between items-center">
                 <div>
                     <p className="text-sm text-gray-400">{t('home.yourPlan')}</p>
@@ -75,10 +75,10 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ setActiveScreen, currentUser, c
         <p className="mt-4 text-gray-300 text-lg">{t('home.greeting', { name: currentUser.name.split(' ')[0] })}</p>
       </header>
       
-      <div className="space-y-6">
+      <div className="space-y-6 md:grid md:grid-cols-2 md:gap-6 md:space-y-0">
         <PlanStatus plan={currentPlan} uses={remainingAiUses} onChangePlan={() => setActiveScreen(Screen.Plans)} />
 
-        <h2 className="text-xl font-semibold text-white pt-2">{t('home.startSellingMore')}</h2>
+        <h2 className="text-xl font-semibold text-white pt-2 md:col-span-2">{t('home.startSellingMore')}</h2>
         <ActionCard
             title={t('home.analyzeMyProduct')}
             description={t('home.analyzeMyProductDesc')}
