@@ -17,7 +17,9 @@ import ProfileScreen from './components/screens/ProfileScreen';
 import { fileToDataUrl } from './utils/fileUtils';
 import CompetitorAnalysisScreen from './components/screens/CompetitorAnalysisScreen';
 import AddProductModal from './components/common/AddProductModal';
+import AuthCallbackPage from './components/pages/AuthCallbackPage';
 import { I18nProvider } from './context/I18nContext';
+import { useAuth } from './hooks/useAuth';
 
 
 const USERS_DB_KEY = 'vendeAiUsersDb';
