@@ -28,44 +28,8 @@ const CURRENT_USER_EMAIL_KEY = 'vendeAiCurrentUserEmail';
 type AuthScreen = 'welcome' | 'login' | 'register';
 
 const App: React.FC = () => {
-    const [usersDb, setUsersDb] = useState<Record<string, User>>({});
-    const [currentUser, setCurrentUser] = useState<User | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const { user: currentUser, loading, logout, updateProfile } = useAuth();
     const [authScreen, setAuthScreen] = useState<AuthScreen>('welcome');
-
-    // Load DB and check for logged-in user on initial mount
-    useEffect(() => {
-        try {
-            const savedDbJSON = localStorage.getItem(USERS_DB_KEY);
-            // FIX: Explicitly type the parsed JSON to ensure type safety for the user database.
-            const db: Record<string, User> = savedDbJSON ? JSON.parse(savedDbJSON) : {};
-            setUsersDb(db);
-
-            const currentUserEmail = localStorage.getItem(CURRENT_USER_EMAIL_KEY);
-            if (currentUserEmail && db[currentUserEmail]) {
-                setCurrentUser(db[currentUserEmail]);
-            }
-        } catch (error) {
-            console.error("Failed to parse data from localStorage", error);
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
-
-    // Save state to localStorage whenever it changes
-    useEffect(() => {
-        if (!isLoading) {
-            // Save the entire user database
-            localStorage.setItem(USERS_DB_KEY, JSON.stringify(usersDb));
-
-            // Save the current user's email to remember login state
-            if (currentUser) {
-                localStorage.setItem(CURRENT_USER_EMAIL_KEY, currentUser.email);
-            } else {
-                localStorage.removeItem(CURRENT_USER_EMAIL_KEY);
-            }
-        }
-    }, [usersDb, currentUser, isLoading]);
 
     const updateCurrentUserState = (updatedData: Partial<User>) => {
         if (!currentUser) return;
