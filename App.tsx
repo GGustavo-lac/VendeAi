@@ -141,11 +141,11 @@ const App: React.FC = () => {
                 case Screen.Analyzer:
                     return <AnalyzerScreen remainingAiUses={remainingAiUses} onAttemptAiUse={handleAttemptAiUse} onAddProduct={handleAddProduct} currentPlan={currentPlan} setActiveScreen={setActiveScreen} />;
                 case Screen.Dashboard:
-                    return <DashboardScreen products={currentUser.products} salesGoal={currentUser.salesGoal} onSetSalesGoal={handleSetSalesGoal} currentPlan={currentPlan} setActiveScreen={setActiveScreen} />;
+                    return <DashboardScreen products={currentUser.products || []} salesGoal={currentUser.salesGoal} onSetSalesGoal={handleSetSalesGoal} currentPlan={currentPlan} setActiveScreen={setActiveScreen} />;
                 case Screen.Products:
-                    return <ProductsScreen products={currentUser.products} onAddProduct={handleAddProduct} onUpdateSales={handleUpdateSales} currentPlan={currentPlan} setActiveScreen={setActiveScreen} onAttemptAiUse={handleAttemptAiUse} onOpenAddModal={handleOpenAddProductModal} />;
+                    return <ProductsScreen products={currentUser.products || []} onAddProduct={handleAddProduct} onUpdateSales={handleUpdateSales} currentPlan={currentPlan} setActiveScreen={setActiveScreen} onAttemptAiUse={handleAttemptAiUse} onOpenAddModal={handleOpenAddProductModal} />;
                 case Screen.Plans:
-                    return <PlansScreen currentPlanId={currentUser.currentPlanId} onSubscriptionSuccess={handleSetPlan} />;
+                    return <PlansScreen currentPlanId={currentUser.subscription?.planId || 'free'} onSubscriptionSuccess={handleSetPlan} />;
                 case Screen.Chat:
                     return <SmartChatScreen onAttemptAiUse={handleAttemptAiUse} />;
                 case Screen.Trends:
